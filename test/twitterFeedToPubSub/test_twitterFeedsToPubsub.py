@@ -39,6 +39,7 @@ class TweepyAPITests(unittest.TestCase):
         geo_location_data = self.api.geo_id(place_id='c3f37afa9efcf94b')
         self.assertEqual(geo_location_data.name, 'Austin')
 
+
 class TweepyCursorTests(unittest.TestCase):
     def setUp(self):
         auth = tweepy.OAuth1UserHandler(api_key, api_secret_key, access_token, access_token_secret)
@@ -46,7 +47,7 @@ class TweepyCursorTests(unittest.TestCase):
         self.api.retry_count = 2
         self.api.retry_delay = 5
 
-    def testpagecursoritems(self):
+    def test_page_cursor_items(self):
         items = Cursor(self.api.user_timeline).items(1)
         item_list = []
         for item in items:
