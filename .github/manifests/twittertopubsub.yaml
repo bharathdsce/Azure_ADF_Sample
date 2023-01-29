@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: twitter-feeds-pubsub
+  labels:
+    app: twitter-feeds-pubsub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: twitter-feeds-pubsub
+  template:
+    metadata:
+      labels:
+        app: twitter-feeds-pubsub
+    spec:
+      containers:
+        - name: twitter-feeds-pubsub
+          image: gcr.io/ikeausecase/twittertopubsub:latest
+          imagePullPolicy: Always

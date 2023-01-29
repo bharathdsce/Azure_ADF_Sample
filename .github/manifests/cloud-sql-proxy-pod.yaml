@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-sql-proxy
+  labels:
+    app: cloud-sql-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloud-sql-proxy
+  template:
+    metadata:
+      labels:
+        app: cloud-sql-proxy
+    spec:
+      containers:
+        - name: cloud-sql-proxy
+          imagePullPolicy: IfNotPresent
+          image: gcr.io/cloudsql-docker/gce-proxy:latest
+          command:
+            - "/cloud_sql_proxy"
+            - "-instances=ikeausecase:us-central1:ikea-usecase=tcp:0.0.0.0:3308"
+          ports:
+            - name: port-cloudsql
+              containerPort: 3308

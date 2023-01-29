@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beam-runner
+  labels:
+    app: beam-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: beam-runner
+  template:
+    metadata:
+      labels:
+        app: beam-runner
+    spec:
+      containers:
+        - name: beam-runner-mysql
+          image: gcr.io/ikeausecase/beamrunner:latest
+          imagePullPolicy: Always

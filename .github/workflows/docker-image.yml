@@ -1,0 +1,157 @@
+name: Build and Deploy to GKE
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  GITHUB_SHA: ${{ github.sha }}
+  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
+  GKE_ZONE: ${{ secrets.GKE_ZONE }}
+  GKE_PROJECT: ${{ secrets.GKE_PROJECT }}
+  GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_JSON }}
+
+  CLOUD_SQL_PROXY_YAML: .github/manifests/cloud-sql-proxy-pod.yaml
+  CLOUD_SQL_PROXY_SERVICE_YAML: .github/manifests/cloud-sql-cluster-ip-service.yaml
+
+  BEAM_RUNNER_IMAGE_NAME: beamrunner
+  BEAM_RUNNER_IMAGE_TAG: latest
+  BEAM_RUNNER_DOCKERFILE: docker/beamRunner/Dockerfile
+  BEAM_RUNNER_MANIFEST_YAML: .github/manifests/beamrunner.yaml
+
+  TWITTER_FEEDS_IMAGE_NAME: twittertopubsub
+  TWITTER_FEEDS_IMAGE_TAG: latest
+  TWITTER_FEEDS_DOCKERFILE: docker/twitterFeedsToPubSub/Dockerfile
+  TWITTER_FEEDS_MANIFEST_YAML: .github/manifests/twittertopubsub.yaml
+
+jobs:
+  beamrunner:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run Unit Test Cases for Apache Beam
+        run: |
+          python -m unittest discover -v test/beamRunner
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_JSON }}
+          project_id: ${{ secrets.GKE_PROJECT }}
+
+      - name: Configure docker
+        run: |
+          gcloud --quiet auth configure-docker
+
+      - name: Authenticate with Google Cloud using SA Key
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: '${{ secrets.GCP_SA_JSON }}'
+
+      - name: Get the GKE Credentials
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          project_id: ${{ env.GKE_PROJECT }}
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_ZONE }}
+
+      - name: Deploy the Cloud SQL Proxy
+        id: deploy-cloud-sql-proxy
+        run: |
+          kubectl apply -f $CLOUD_SQL_PROXY_YAML
+
+      - name: Expose the Cloud SQL Proxy as Cluster IP
+        id: expose-cloud-sql-proxy-service
+        if: steps.deploy-cloud-sql-proxy.conclusion == 'success'
+        run: |
+          kubectl apply -f $CLOUD_SQL_PROXY_SERVICE_YAML
+
+      - name: Build the Docker image for beamrunner
+        id: beamrunner
+        run: docker build --file $BEAM_RUNNER_DOCKERFILE --tag gcr.io/${{ env.GKE_PROJECT }}/$BEAM_RUNNER_IMAGE_NAME:$BEAM_RUNNER_IMAGE_TAG .
+
+      - name: Push to Container registry for beamrunner
+        run: |
+          docker push "gcr.io/$GKE_PROJECT/$BEAM_RUNNER_IMAGE_NAME:$BEAM_RUNNER_IMAGE_TAG"
+
+      - name: Deploy Beam runner app for beamrunner
+        if: steps.expose-cloud-sql-proxy-service.conclusion == 'success'
+        run: |
+          kubectl apply -f $BEAM_RUNNER_MANIFEST_YAML
+
+
+  twittertopubsub:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.9" ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run Unit Test Cases for Twitter Feeds
+        run: |
+          python -m unittest discover -v test/twitterFeedToPubSub
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_JSON }}
+          project_id: ${{ secrets.GKE_PROJECT }}
+
+      - run: |
+          gcloud --quiet auth configure-docker
+
+      - name: Authenticate with Google Cloud using SA Key
+        id: authenticate
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: '${{ secrets.GCP_SA_JSON }}'
+
+      - name: Get the GKE Credentials
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          project_id: ${{ env.GKE_PROJECT }}
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_ZONE }}
+
+      - name: Build the Docker image for twittertopubsub
+        id: twittertopubsub
+        run: docker build --file $TWITTER_FEEDS_DOCKERFILE --tag gcr.io/${{ env.GKE_PROJECT }}/$TWITTER_FEEDS_IMAGE_NAME:$TWITTER_FEEDS_IMAGE_TAG .
+
+      - name: Push to Container registry for twittertopubsub
+        run: |
+          docker push "gcr.io/${{ env.GKE_PROJECT }}/$TWITTER_FEEDS_IMAGE_NAME:$TWITTER_FEEDS_IMAGE_TAG"
+
+      - name: Deploy Beam runner app for twittertopubsub
+        run: |
+          kubectl apply -f $TWITTER_FEEDS_MANIFEST_YAML

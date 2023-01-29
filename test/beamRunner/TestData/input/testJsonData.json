@@ -1,0 +1,66 @@
+{"data": {
+   "tweet_info":{
+      "created_at":"Wed Jan 25 13:08:15 +0000 2023",
+      "id":1618234295109423105,
+      "retweet_count":0,
+      "favorite_count":0,
+      "favorited":false,
+      "retweeted":false,
+      "lang":"en",
+      "full_text":"This is a testing framework"
+   },
+   "user_info":{
+      "id":"1298711856186499072",
+      "name":"Test User",
+      "screen_name":"test_user",
+      "location":"",
+      "description":"dummy description",
+      "protected":false,
+      "followers_count":596,
+      "listed_count":5,
+      "created_at":"Wed Jan 25 13:08:15 +0000 2023",
+      "favourites_count":120352,
+      "geo_enabled":true,
+      "verified":false,
+      "lang":"None",
+      "has_extended_profile":false
+   },
+   "place_info":{
+      "geo":"None",
+      "coordinates":"None",
+      "place":"None"
+   },
+   "entities_info":{
+      "hashtags":[
+
+      ],
+      "symbols":[
+
+      ],
+      "user_mentions":[
+         {
+            "screen_name":"test_user_mentions1",
+            "name":"Test User Mentions1",
+            "id":1420721368560250883,
+            "id_str":"1420721368560250883",
+            "indices":[
+               0,
+               8
+            ]
+         },
+         {
+            "screen_name":"test_user_mentions1",
+            "name":"Test User Mentions1",
+            "id":1081970078596370432,
+            "id_str":"1081970078596370432",
+            "indices":[
+               9,
+               17
+            ]
+         }
+      ],
+      "urls":[
+
+      ]
+   }
+}}

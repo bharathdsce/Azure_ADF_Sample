@@ -1,0 +1,11 @@
+cryptography
+rsa
+google-cloud-pubsub==2.13.0
+google-cloud-bigquery==3.3.0
+google-cloud-translate==2.0.1
+tweepy==4.9.0
+apache-beam[gcp]
+beam_nuggets==0.18.1
+emoji==2.2.0
+python-dotenv==0.21.1
+PyMySQL==0.10.0
